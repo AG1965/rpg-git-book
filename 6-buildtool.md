@@ -247,6 +247,28 @@ clean:
 
 The above makefile is a good example of a makefile that will only rebuild QSYS objects when the source has changed. Effectively the only change you need to make is to add the `touch` command to all your rules, but would need testing.
 
+The above isn't true, at least not as of 2021-12. You can access the classic objects in the QSYS-file-system as well as files in the rest of the IFS. This makefile, stripped to the point, shows it:
+```makefile
+BIN_LIB=MYLIBRARY
+DBGVIEW=*ALL
+
+# for easier access, define a second variable with the QSYS-path
+QBIN_LIB  = /QSYS.LIB/$(BIN_LIB).LIB
+
+all: PGMs 
+
+PGMs: $(Q_BIN_LIB)/PGMA.PGM $(QBIN_LIB)/PGMB.PGM 
+
+$(QBIN_LIB)/%.PGM: ./QRPGSRC/%.SQLRPGLE	
+	system "CRTSQLRPGI OBJ($(BIN_LIB)/$*) SRCSTMF('./$<') COMMIT(*NONE) OBJTYPE(*PGM) RPGPPOPT(*LVL2) DBGVIEW(*LIST)"
+
+$(QBIN_LIB)/%.PGM: ./QRPGSRC/%.RPGLE	
+	system "CRTBNDRPG PGM($(BIN_LIB)/$*) SRCSTMF('./$<') DBGVIEW($(DBGVIEW))"
+
+```
+If you have a file QRPGSRC/PGMA.SQLRPGLE and a file QRPGSRC/PGMB.RPGLE, the correct commands would be used it the source file is younger than the object. 
+
+
 ## Building objects that have no source
 
 Objects like message files and data areas don't have source. This can be a true challenge when replicating your environment on other systems. Sadly, there is nothing built into IBM i which allows you to create a data area or message file from source - but of course, you could use a CL to execute the command. That means, if you can use a CL to build them, you can use a `makefile` too!
